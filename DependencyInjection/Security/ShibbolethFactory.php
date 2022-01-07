@@ -22,16 +22,16 @@
  * @copyright   (C) 2013 Ronny Moreas, KU Leuven
  * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL-3
  */
-namespace KULeuven\ShibbolethBundle\DependencyInjection\Security;
 
-use Symfony\Component\HttpKernel\Log\LoggerInterface;
+namespace KULeuven\ShibbolethBundle\DependencyInjection\Security;
 
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\SecurityFactoryInterface;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\Definition;
-use Symfony\Component\DependencyInjection\DefinitionDecorator;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\Log\LoggerInterface;
 
 class ShibbolethFactory implements SecurityFactoryInterface
 {
@@ -63,10 +63,9 @@ class ShibbolethFactory implements SecurityFactoryInterface
     {
         $node
             ->children()
-                ->scalarNode('provider')->end()
-                ->booleanNode('use_shibboleth_entry_point')->defaultValue(true)->end()
-                ->end()
-        ;
+            ->scalarNode('provider')->end()
+            ->booleanNode('use_shibboleth_entry_point')->defaultValue(true)->end()
+            ->end();
     }
 
     protected function createEntryPoint($container, $id, $config, $defaultEntryPoint)
@@ -75,10 +74,9 @@ class ShibbolethFactory implements SecurityFactoryInterface
             return $defaultEntryPoint;
         }
         if ($config['use_shibboleth_entry_point']) {
-            $entryPointId = 'security.authentication.entry_point.shibboleth.'.$id;
+            $entryPointId = 'security.authentication.entry_point.shibboleth.' . $id;
             $container
-                ->setDefinition($entryPointId, new DefinitionDecorator('security.authentication.entry_point.shibboleth'))
-            ;
+                ->setDefinition($entryPointId, new ChildDefinition('security.authentication.entry_point.shibboleth'));
         } else {
             $entryPointId = null;
         }
@@ -87,11 +85,10 @@ class ShibbolethFactory implements SecurityFactoryInterface
 
     protected function createAuthProvider(ContainerBuilder $container, $id, $config, $userProviderId)
     {
-        $providerId = 'security.authentication.provider.shibboleth.'.$id;
+        $providerId = 'security.authentication.provider.shibboleth.' . $id;
         $container
-            ->setDefinition($providerId, new DefinitionDecorator('security.authentication.provider.shibboleth'))
-            ->replaceArgument(0, new Reference($userProviderId))
-        //    ->replaceArgument(2, $id)
+            ->setDefinition($providerId, new ChildDefinition('security.authentication.provider.shibboleth'))
+            ->replaceArgument(0, new Reference($userProviderId))//    ->replaceArgument(2, $id)
         ;
         return $providerId;
     }
@@ -99,13 +96,13 @@ class ShibbolethFactory implements SecurityFactoryInterface
     protected function createListener($container, $id, $config, $userProvider, $entryPoint)
     {
         $listenerId = 'security.authentication.listener.shibboleth';
-        $listener = new DefinitionDecorator($listenerId);
+        $listener = new ChildDefinition($listenerId);
         $listener->replaceArgument(3, $id);
         if ($entryPoint) {
             $listener->replaceArgument(4, new Reference($entryPoint));
         }
 
-        $listenerId .= '.'.$id;
+        $listenerId .= '.' . $id;
         $container->setDefinition($listenerId, $listener);
 
         return $listenerId;
